@@ -32,7 +32,6 @@ class MyNode(DTROS):
         self.C_p = 0.0
         self.C_i = 0.0
         self.C_d = 0.0
-        self.C_t = 0.0
         self.arr_d = np.array([0.0,0.0,0.0])
 
         #structural paramters of duckiebot
@@ -46,13 +45,15 @@ class MyNode(DTROS):
 
     def getomega(self,dist,tist,dt):
         #parameters for PID control
-        k_p = 4.5
-        k_i = 0.2
-        k_d = 0.0
+        k_p = 5.0
+        k_i = 0.5
+        k_d = 0.5
         #saturation params
         sati = 0.5
-        satd = 0.4
-
+        satd = 0.5
+        omegasat=4.5
+        
+        '''
         #array for moving average filter
         for i in range(1,3):
             self.arr_d[i-1]=self.arr_d[i]
@@ -60,31 +61,40 @@ class MyNode(DTROS):
 
         #getting the filtered error value
         derr = self.filter(self.arr_d)
+        '''
+
+        derr = 6*dist+tist
 
         #proportional gain part
         self.C_p = k_p*derr
 
         #integral term (approximate integral)
-        self.C_i += dt*derr
-
+        self.C_i += k_i*dt*derr
+        '''
         #make sure integral term doesnt become too big
         if self.C_i > sati:
             self.C_i = sati
         if self.C_i < -sati:
             self.C_i = -sati
-
+        '''
         #derivative term
         self.C_d = k_d*(derr-self.dold)/dt
         self.dold = derr
-
+        '''
         #make sure derivative term doesnt become too big
         if self.C_d > satd:
             self.C_d = satd
         if self.C_d < -satd:
             self.C_d = -satd
-
+        '''
         #computing control output
-        omega = self.C_p + k_i*self.C_i + self.C_d
+        omega = self.C_p + self.C_i + self.C_d
+        
+        if omega>omegasat:
+            omega=omegasat
+        if omega<-omegasat:
+            omega=-omegasat
+        
         return omega
 
     def run(self):
@@ -116,7 +126,7 @@ class MyNode(DTROS):
             message2 = self.omega
             message3 = self.tist
             rospy.loginfo('dist: %s' % message1)
-            rospy.loginfo('vdif: %s' % message2)
+            rospy.loginfo('omega: %s' % message2)
             rospy.loginfo('tist: %s' % message3)
             rate.sleep()
 
