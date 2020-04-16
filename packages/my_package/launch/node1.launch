@@ -1,5 +1,5 @@
 <launch>
 
-  <node pkg="my_package" type="PID.py" name="PID Controller" output="screen"/>
+  <node pkg="my_package" type="PID.py" name="PID_Controller" output="screen"/>
   
 </launch>

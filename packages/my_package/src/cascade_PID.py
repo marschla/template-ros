@@ -27,8 +27,11 @@ class MyNode(DTROS):
         self.dist = 0.0
         self.dold = 0.0
         self.phiist = 0.0
-        self.phiref 
+        #self.phiref = 0.0
         self.phiest = 0.0
+
+        self.mtime = 0.0
+        self.mtimeold = 0.0
 
         #params used for PID control 
 
@@ -46,11 +49,11 @@ class MyNode(DTROS):
     def getomega(self,phiref,phiist,dt):
 
         #PID params for inner loop
-        k_p = 1.0
+        k_p = 5.0
         k_i = 0.0
         k_d = 0.0
     
-        err = phiref-phiist
+        err = self.phiest-phiref
 
         omega = k_p*err
 
@@ -58,7 +61,7 @@ class MyNode(DTROS):
 
         return omega
 
-    def getphiref(self,dist)
+    def getphiref(self,dist):
 
         #PID params for outer loop
         k_p = 2.0
@@ -66,11 +69,11 @@ class MyNode(DTROS):
         k_d = 0.0
         sat = np.pi/2.0
 
-        err = dist
+        err = -dist
 
         phiref = k_p*err
 
-        #saturation, currently at 90° (needs testing if bigger angles needed (especially in tight turns))
+        #saturation, currently at pi/2 (needs testing if bigger angles needed (especially in tight turns))
         if phiref>sat:
             phiref=sat
         if phiref<-sat:
@@ -80,7 +83,7 @@ class MyNode(DTROS):
 
     def run(self):
         # publish message every 1/x second
-        #for cascade choose rate > rate of camera
+        #for cascade choose rate > rate of camera    (rate of camera 8-35 Hz)
         rate = rospy.Rate(10) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
@@ -90,8 +93,8 @@ class MyNode(DTROS):
             tnew = time.time()
             dt = tnew-told
 
-            self.phiref = self.getphiref(self.dist)
-            self.omega = self.getomega(self.phiref,self.phiist,dt)
+            phiref = self.getphiref(self.dist)
+            self.omega = self.getomega(phiref,self.phiist,dt)
 
             
 
@@ -100,18 +103,18 @@ class MyNode(DTROS):
             car_cmd_msg.vel_left = self.vref + self.L * self.omega
             car_cmd_msg.vel_right = self.vref - self.L * self.omega
 
-            #self.pub_wheels_cmd.publish(car_cmd_msg)
+            self.pub_wheels_cmd.publish(car_cmd_msg)
 
             #printing messages to verify that program is working correctly 
             #i.ei if dist and tist are always zero, then there is probably no data from the lan_pose
             message1 = self.dist
             message2 = self.omega
             message3 = self.phiist
-            message4 = dt
+            message4 = phiref
 
-            rospy.loginfo('d: %s' % message1)
-            rospy.loginfo('phi: %s' % message3)
-            #rospy.loginfo('dt: %s' % message4)
+            #rospy.loginfo('d: %s' % message1)
+            #rospy.loginfo('phi: %s' % message3)
+            rospy.loginfo('phiref: %s' % message4)
             rospy.loginfo('omega: %s' % message2)
             rate.sleep()
 
@@ -135,6 +138,15 @@ class MyNode(DTROS):
         self.phiest = pose.phi
         #message = pose.d
         #rospy.loginfo('d =  %s' % message)
+        '''
+        self.mtime = time.time()
+        dt = self.mtime-self.mtimeold
+        self.mtimeold = self.mtime
+
+        msg = dt
+        rospy.logwarn("dt= %s" % msg)
+        '''
+        
 
     
 if __name__ == '__main__':

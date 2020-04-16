@@ -1,5 +1,5 @@
 <launch>
 
-  <node pkg="my_package" type="cascade_PID.py" name="Cascade PID Controller" output="screen"/>
+  <node pkg="my_package" type="cascade_PID.py" name="Cascade_PID_Controller" output="screen"/>
   
 </launch>
