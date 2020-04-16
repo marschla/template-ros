@@ -1,5 +1,0 @@
-<launch>
-
-  <node pkg="my_package" type="PID.py" name="Test" output="screen"/>
-  
-</launch>
