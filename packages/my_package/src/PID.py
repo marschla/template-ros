@@ -23,7 +23,7 @@ class MyNode(DTROS):
         #def. variables
         self.vdiff = 0.0
         self.omega = 0.0
-        self.vref = 0.22    #v_ref defines speed at which the robot moves 
+        self.vref = 0.23    #v_ref defines speed at which the robot moves 
         self.dist = 0.0
         self.dold = 0.0
         self.tist = 0.0
@@ -45,9 +45,10 @@ class MyNode(DTROS):
 
     def getomega(self,dist,tist,dt):
         #parameters for PID control
-        k_p = 4.5
-        k_i = 0.9
+        k_p = 4.8
+        k_i = 0.8
         k_d = 0.1
+        k_d=0
         #saturation params
         sati = 1.0
         satd = 1.0

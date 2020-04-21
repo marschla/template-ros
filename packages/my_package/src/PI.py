@@ -23,19 +23,15 @@ class MyNode(DTROS):
         #def. variables
         self.vdiff = 0.0
         self.omega = 0.0
-        self.vref = 0.22    #v_ref defines speed at which the robot moves 
+        self.vref = 0.23    #v_ref defines speed at which the robot moves 
         self.dist = 0.0
         self.dold = 0.0
-        self.phiist = 0.0
-        #self.phiref = 0.0
-        self.phiest = 0.0
-        self.C_i = 0
-
-        self.mtime = 0.0
-        self.mtimeold = 0.0
+        self.tist = 0.0
 
         #params used for PID control 
-
+        self.C_p = 0.0
+        self.C_i = 0.0
+        self.arr_d = np.array([0.0,0.0,0.0])
 
         #structural paramters of duckiebot
         self.L = 0.05      #length from point A to wheels [m]
@@ -46,68 +42,64 @@ class MyNode(DTROS):
         val = np.median(data)
         return val 
 
-    #control alg. for inner loop
-    def getomega(self,phiref,phiist,dt):
-
-        #PID params for inner loop
+    def getomega(self,dist,tist,dt):
+        #parameters for PID control
         k_p = 5.0
-        k_i = 0.1
-        k_d = 0.0
+        k_i = 0.8
+        #saturation params
         sati = 1.0
-        satd = 10.0
-        omegasat = 5.0
-    
-        err = self.phiest-phiref
+        omegasat=5.0
+        
+        '''
+        #array for moving average filter
+        for i in range(1,3):
+            self.arr_d[i-1]=self.arr_d[i]
+        self.arr_d[2] = 6*dist+tist    #error is weighted sum of distance to lane center and heading error
 
-        C_p = k_p*err
+        #getting the filtered error value
+        derr = self.filter(self.arr_d)
+        '''
 
+        err = 6*dist+tist
+
+        #proportional gain part
+        self.C_p = k_p*err
+
+        #integral term (approximate integral)
         self.C_i += k_i*dt*err
-
-        omega = C_p + self.C_i
-
+        
+        #make sure integral term doesnt become too big
+        if self.C_i > sati:
+            self.C_i = sati
+        if self.C_i < -sati:
+            self.C_i = -sati
+        
+        
+        
+        #computing control output
+        omega = self.C_p + self.C_i 
+        
+        
         if omega>omegasat:
             omega=omegasat
         if omega<-omegasat:
             omega=-omegasat
-
-        self.phiest += omega*dt
-
+        
         return omega
-
-    def getphiref(self,dist):
-
-        #PID params for outer loop
-        k_p = 2.0
-        k_i = 0.0
-        k_d = 0.0
-        sat = np.pi/2.0
-
-        err = -dist
-
-        phiref = k_p*err
-
-        #saturation, currently at pi/2 (needs testing if bigger angles needed (especially in tight turns))
-        if phiref>sat:
-            phiref=sat
-        if phiref<-sat:
-            phiref=-sat
-
-        return phiref
 
     def run(self):
         # publish message every 1/x second
-        #for cascade choose rate > rate of camera    (rate of camera 8-35 Hz)
-        rate = rospy.Rate(50) 
+        rate = rospy.Rate(10) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
         while not rospy.is_shutdown():
-            #computing dt for I and D-part of controller
+            #computing dt for I-part of controller
             told = tnew
             tnew = time.time()
             dt = tnew-told
 
-            phiref = self.getphiref(self.dist)
-            self.omega = self.getomega(phiref,self.phiist,dt)
+            #self.vdiff = self.getvdiff(self.dist,self.tist,dt)
+            self.omega = self.getomega(self.dist,self.tist,dt)
 
             
 
@@ -122,12 +114,15 @@ class MyNode(DTROS):
             #i.ei if dist and tist are always zero, then there is probably no data from the lan_pose
             message1 = self.dist
             message2 = self.omega
-            message3 = self.phiist
-            message4 = phiref
+            message3 = self.tist
+            message4 = dt
 
-            #rospy.loginfo('d: %s' % message1)
-            #rospy.loginfo('phi: %s' % message3)
-            rospy.loginfo('phiref: %s' % message4)
+            if dt<0.08:
+                rospy.logwarn('dt: %s' % message4)
+
+            rospy.loginfo('d: %s' % message1)
+            rospy.loginfo('phi: %s' % message3)
+            #rospy.loginfo('dt: %s' % message4)
             rospy.loginfo('omega: %s' % message2)
             rate.sleep()
 
@@ -146,20 +141,9 @@ class MyNode(DTROS):
     #thus we do not use all incoming data
     def control(self,pose):
         self.dist = pose.d
-        self.phiist = pose.phi
-        #updating our estimate of phi
-        self.phiest = pose.phi
+        self.tist = pose.phi
         #message = pose.d
         #rospy.loginfo('d =  %s' % message)
-        '''
-        self.mtime = time.time()
-        dt = self.mtime-self.mtimeold
-        self.mtimeold = self.mtime
-
-        msg = dt
-        rospy.logwarn("dt= %s" % msg)
-        '''
-        
 
     
 if __name__ == '__main__':
