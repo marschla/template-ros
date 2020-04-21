@@ -1,5 +1,5 @@
 # parameters
-ARG REPO_NAME="controller-env"
+ARG REPO_NAME="template-ros"
 
 # ==================================================>
 # ==> Do not change this code

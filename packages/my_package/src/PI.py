@@ -42,12 +42,22 @@ class MyNode(DTROS):
         val = np.median(data)
         return val 
 
+    def sati(self,omega):
+        sat = 1.0
+
+        if omega > sat:
+            return sat
+        if omega < sat:
+            return -sat
+        else:
+            return omega
+
     def getomega(self,dist,tist,dt):
         #parameters for PID control
         k_p = 5.0
-        k_i = 0.8
+        k_i = 1.5
+        k_t = 0.5
         #saturation params
-        sati = 1.0
         omegasat=5.0
         
         '''
@@ -65,25 +75,28 @@ class MyNode(DTROS):
         #proportional gain part
         self.C_p = k_p*err
 
-        #integral term (approximate integral)
-        self.C_i += k_i*dt*err
         
         #make sure integral term doesnt become too big
+        '''
         if self.C_i > sati:
             self.C_i = sati
         if self.C_i < -sati:
             self.C_i = -sati
-        
+        '''
         
         
         #computing control output
         omega = self.C_p + self.C_i 
         
-        
+        '''
         if omega>omegasat:
             omega=omegasat
         if omega<-omegasat:
             omega=-omegasat
+        '''
+
+        #integral term (approximate integral)
+        self.C_i += dt*(k_i*err+k_t*(self.sati(omega)-omega))
         
         return omega
 
