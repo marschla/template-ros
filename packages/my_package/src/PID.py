@@ -45,10 +45,9 @@ class MyNode(DTROS):
 
     def getomega(self,dist,tist,dt):
         #parameters for PID control
-        k_p = 4.8
+        k_p = 4.6
         k_i = 0.8
         k_d = 0.1
-        k_d=0
         #saturation params
         sati = 1.0
         satd = 1.0

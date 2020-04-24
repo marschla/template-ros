@@ -23,7 +23,7 @@ class MyNode(DTROS):
         #def. variables
         self.vdiff = 0.0
         self.omega = 0.0
-        self.vref = 0.22    #v_ref defines speed at which the robot moves 
+        self.vref = 0.23    #v_ref defines speed at which the robot moves 
         self.dist = 0.0
         self.dold = 0.0
         self.phiist = 0.0
@@ -33,6 +33,8 @@ class MyNode(DTROS):
 
         self.mtime = 0.0
         self.mtimeold = 0.0
+
+        self.time_arr = []
 
         #params used for PID control 
 
@@ -50,8 +52,8 @@ class MyNode(DTROS):
     def getomega(self,phiref,phiist,dt):
 
         #PID params for inner loop
-        k_p = 5.0
-        k_i = 0.1
+        k_p = 3.8
+        k_i = 0.0
         k_d = 0.0
         sati = 1.0
         satd = 10.0
@@ -124,11 +126,16 @@ class MyNode(DTROS):
             message2 = self.omega
             message3 = self.phiist
             message4 = phiref
+            message5 = dt
 
             #rospy.loginfo('d: %s' % message1)
             #rospy.loginfo('phi: %s' % message3)
-            rospy.loginfo('phiref: %s' % message4)
-            rospy.loginfo('omega: %s' % message2)
+            #rospy.loginfo('phiref: %s' % message4)
+            #rospy.loginfo('omega: %s' % message2)
+            '''
+            self.time_arr.append(dt)
+            rospy.logwarn("dt: %s" % message5)
+            '''
             rate.sleep()
 
         #shutdown procedure, stopping motor movement etc.
@@ -151,6 +158,7 @@ class MyNode(DTROS):
         self.phiest = pose.phi
         #message = pose.d
         #rospy.loginfo('d =  %s' % message)
+        
         '''
         self.mtime = time.time()
         dt = self.mtime-self.mtimeold
@@ -158,7 +166,37 @@ class MyNode(DTROS):
 
         msg = dt
         rospy.logwarn("dt= %s" % msg)
+        self.time_arr.append(dt)
         '''
+
+    #computing avg. frequ of camera
+    def save(self):
+
+        self.time_arr.pop(0)
+
+        res = 0
+        for i in self.time_arr:
+            res+=i
+
+        avg = res/len(self.time_arr)
+
+        #determine min and max dt
+        maxdt = avg
+        mindt = avg
+
+        for i in self.time_arr:
+            if i>maxdt:
+                maxdt=i
+            if i<mindt:
+                mindt=i
+
+        msg1 = 1.0/avg
+        msg2 = 1.0/mindt
+        msg3 = 1.0/maxdt
+        rospy.loginfo("avg. dt: %s" % msg1)
+        rospy.loginfo("max dt: %s" % msg2)
+        rospy.loginfo("min dt: %s" % msg3)
+        
         
 
     
@@ -168,4 +206,7 @@ if __name__ == '__main__':
     # run node
     node.run()
     # keep spinning
+
+    #node.save()
+
     rospy.spin()
