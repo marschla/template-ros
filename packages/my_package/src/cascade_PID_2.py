@@ -44,10 +44,15 @@ class MyNode(DTROS):
 
     def getphiref(self,dist):
         L = 0.1         #lookahead parameter
+        vmax = 0.25     #maximal velocity
 
         phiref = np.arctan2(dist,L)
 
-        vref = np.sqrt(L*L+dist*dist)/dist
+        if np.abs(dist)<0.05:
+            vref = vmax
+        else:
+            vref = np.sqrt(L*L+dist*dist)/(9.0*dist)   #factor 9 is that velocity isn't bigger then vmax
+                                                       #if dist-> inf, vref -> 0.1111
 
         return phiref,vref
 
