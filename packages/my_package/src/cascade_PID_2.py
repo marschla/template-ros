@@ -47,7 +47,7 @@ class MyNode(DTROS):
 
         phiref = np.arctan2(dist,L)
 
-        vref = np.sqrt(L*L+dist*dist)/d
+        vref = np.sqrt(L*L+dist*dist)/dist
 
         return phiref,vref
 
@@ -134,7 +134,7 @@ class MyNode(DTROS):
             #i.ei if dist and tist are always zero, then there is probably no data from the lan_pose
             message1 = self.dist
             message2 = self.omega
-            message3 = self.tist
+            message3 = self.phi
             message4 = dt
 
             if dt<0.08:
