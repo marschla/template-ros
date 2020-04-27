@@ -45,14 +45,34 @@ class MyNode(DTROS):
     def getphiref(self,dist):
         L = 0.1         #lookahead parameter
         vmax = 0.25     #maximal velocity
+        phisat = np.pi/3.0
 
-        phiref = np.arctan2(dist,L)
+        phiref = np.arctan2(np.abs(dist),L)
 
+        if dist>0:
+            phiref = -phiref
+        if dist<0:
+            phiref = phiref
+
+
+        #this part slows the DB down, if distance to lane center or phi is too big
+
+        #if DB is near lane center, drive at max velocity
         if np.abs(dist)<0.05:
             vref = vmax
+        #if further away drive slower (dist-> inf, vref->0.11111)
         else:
-            vref = np.sqrt(L*L+dist*dist)/(9.0*dist)   #factor 9 is that velocity isn't bigger then vmax
-                                                       #if dist-> inf, vref -> 0.1111
+            vref = np.sqrt(L*L+dist*dist)/(9*np.abs(dist))   #factor that velocity isn't bigger then vmax
+
+        if np.abs(self.phi)>np.pi/2.5:
+            vref = 0.05
+
+                                                              
+        #phiref saturating behavior
+        if phiref>phisat:
+            phiref=phisat
+        if phiref<-phisat:
+            phiref=-phisat
 
         return phiref,vref
 
@@ -60,10 +80,10 @@ class MyNode(DTROS):
         #parameters for PID control
         k_p = 4.0
         k_i = 0.0
-        k_d = 0.0
+        k_d = 0.2
         #saturation params
         sati = 1.0
-        satd = 1.0
+        satd = 2.0
         omegasat=5.0
         
         '''
@@ -111,7 +131,7 @@ class MyNode(DTROS):
 
     def run(self):
         # publish message every 1/x second
-        rate = rospy.Rate(10) 
+        rate = rospy.Rate(20) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
         while not rospy.is_shutdown():
@@ -130,8 +150,8 @@ class MyNode(DTROS):
 
             #def. motor commands that will be published
             car_cmd_msg.header.stamp = rospy.get_rostime()
-            car_cmd_msg.vel_left = vref + self.L * self.omega
-            car_cmd_msg.vel_right = vref - self.L * self.omega
+            car_cmd_msg.vel_left = vref - self.L * self.omega
+            car_cmd_msg.vel_right = vref + self.L * self.omega
 
             self.pub_wheels_cmd.publish(car_cmd_msg)
 
@@ -139,15 +159,12 @@ class MyNode(DTROS):
             #i.ei if dist and tist are always zero, then there is probably no data from the lan_pose
             message1 = self.dist
             message2 = self.omega
-            message3 = self.phi
-            message4 = dt
-
-            if dt<0.08:
-                rospy.logwarn('dt: %s' % message4)
+            message3 = phiref
+            message4 = vref
 
             rospy.loginfo('d: %s' % message1)
-            rospy.loginfo('phi: %s' % message3)
-            #rospy.loginfo('dt: %s' % message4)
+            rospy.loginfo('phiref: %s' % message3)
+            rospy.loginfo('vref: %s' % message4)
             rospy.loginfo('omega: %s' % message2)
             rate.sleep()
 
