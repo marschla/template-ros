@@ -1,0 +1,5 @@
+<launch>
+
+  <node pkg="my_package" type="pole_placement1.py" name="Pole_Placement_1" output="screen"/>
+  
+</launch>

@@ -52,8 +52,8 @@ class MyNode(DTROS):
             #state feedback: statevector x = [d;phi]
             #K places poles at -1 and -2
 
-            k1 = 2.0/self.vref
-            k2 = 3.0
+            k1 = 1.5/self.vref
+            k2 = -2.5
 
             # u = -K*x
             self.omega = -k1*self.dist - k2*self.phi
@@ -69,7 +69,7 @@ class MyNode(DTROS):
             #i.ei if dist and tist are always zero, then there is probably no data from the lan_pose
             message1 = self.dist
             message2 = self.omega
-            message3 = self.tist
+            message3 = self.phi
             message4 = dt
 
 
