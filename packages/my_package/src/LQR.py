@@ -26,6 +26,7 @@ class MyNode(DTROS):
         self.vref = 0.23    #v_ref defines speed at which the robot moves 
         self.dist = 0.0
         self.phi = 0.0
+        self.dint = 0.0
 
 
         #structural paramters of duckiebot
@@ -55,6 +56,9 @@ class MyNode(DTROS):
 
             Ts = dt
 
+            #computing integral state
+            dint += self.dist*dt
+
             #discrete state space matrices (without integral d state)
             A = np.matrix([[1,self.vref*Ts],[0,1]])
             B = np.matrix([[0.5*Ts*Ts*self.vref],[Ts]])
@@ -71,16 +75,18 @@ class MyNode(DTROS):
             Q = np.matrix([[1,0,0],[0,1,0],[0,0,1]])
             R = np.matrix([[0.1]])
             '''
-            
+
             #solving dare
             (X,L,G) = control.dare(A,B,Q,R)
 
             #extracting K-matrix-components
             k1 = G[0,0]
             k2 = -G[0,1]
+            #k3 = G[0,2]
 
             # u = -K*x   (state feedback)
             self.omega = -k1*self.dist - k2*self.phi
+            #self.omega  = -k1*self.dist - k2*self.phi -k3*self.dint
 
             self.omega = self.omega
 
