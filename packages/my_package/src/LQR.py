@@ -57,7 +57,7 @@ class MyNode(DTROS):
             Ts = dt
 
             #computing integral state
-            dint += self.dist*dt
+            self.dint += self.dist*dt
 
             #discrete state space matrices (without integral d state)
             A = np.matrix([[1,self.vref*Ts],[0,1]])
