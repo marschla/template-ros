@@ -25,6 +25,7 @@ class MyNode(DTROS):
         self.vref = 0.23    #v_ref defines speed at which the robot moves 
         self.dist = 0.0
         self.phi = 0.0
+        self.dint = 0.0
 
 
         #structural paramters of duckiebot
@@ -49,15 +50,30 @@ class MyNode(DTROS):
             tnew = time.time()
             dt = tnew-told
 
+            #without integral state
             #state feedback: statevector x = [d;phi]
-            #K places poles at -1 and -2
+            #K places poles at -1 and -2   (in continuous time)
 
-            k1 = 1.5/self.vref
-            k2 = -2.5
+            k1 = 2.0/self.vref
+            k2 = -2.8
 
             # u = -K*x
             self.omega = -k1*self.dist - k2*self.phi
 
+            '''
+            #with integral state
+            #state feedback: statevector = [d;phi;dint]
+            #K places poles at -1,-1,-2
+
+            self.dint += dt*self.dist
+
+            k1 = 5.0/self.vref
+            k2 = 4.0
+            k3 = 2.0/self.vref
+
+            self.omega = -k1*self.dist - k2*self.phi - k3*self.dint
+            '''
+            
             #def. motor commands that will be published
             car_cmd_msg.header.stamp = rospy.get_rostime()
             car_cmd_msg.vel_left = self.vref + self.L * self.omega
@@ -66,7 +82,7 @@ class MyNode(DTROS):
             self.pub_wheels_cmd.publish(car_cmd_msg)
 
             #printing messages to verify that program is working correctly 
-            #i.ei if dist and tist are always zero, then there is probably no data from the lan_pose
+            #i.ei if dist and tist are always zero, then there is probably no data from the lane_pose
             message1 = self.dist
             message2 = self.omega
             message3 = self.phi
