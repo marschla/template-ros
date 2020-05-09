@@ -43,8 +43,8 @@ class MyNode(DTROS):
         return val 
 
     def getphiref(self,dist):
-        L = 0.1         #lookahead parameter
-        vmax = 0.25     #maximal velocity
+        L = 0.25         #lookahead parameter
+        vmax = 0.23     #maximal velocity
         phisat = np.pi/3.0
 
         phiref = np.arctan2(np.abs(dist),L)
@@ -54,7 +54,7 @@ class MyNode(DTROS):
         if dist<0:
             phiref = phiref
 
-
+        '''
         #this part slows the DB down, if distance to lane center or phi is too big
 
         #if DB is near lane center, drive at max velocity
@@ -66,7 +66,9 @@ class MyNode(DTROS):
 
         if np.abs(self.phi)>np.pi/2.5:
             vref = 0.05
-
+        '''
+        #for now velocity scaling is not used (but works)
+        vref = vmax
                                                               
         #phiref saturating behavior
         if phiref>phisat:
@@ -79,7 +81,7 @@ class MyNode(DTROS):
     def getomega(self,err,dt):
         #parameters for PID control
         k_p = 4.0
-        k_i = 0.0
+        k_i = 0.1
         k_d = 0.2
         #saturation params
         sati = 1.0
@@ -131,7 +133,7 @@ class MyNode(DTROS):
 
     def run(self):
         # publish message every 1/x second
-        rate = rospy.Rate(20) 
+        rate = rospy.Rate(10) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
         while not rospy.is_shutdown():
