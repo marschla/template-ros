@@ -53,11 +53,11 @@ class MyNode(DTROS):
 
         #PID params for inner loop
         k_p = 3.8
-        k_i = 0.0
+        k_i = 0.01
         k_d = 0.0
         sati = 1.0
-        satd = 10.0
-        omegasat = 5.0
+        satd = 1.0
+        omegasat = 4.5
     
         err = self.phiest-phiref
 
@@ -80,11 +80,12 @@ class MyNode(DTROS):
 
         #PID params for outer loop
         k_p = 2.0
-        k_i = 0.0
+        k_i = 0.2
         k_d = 0.0
         sat = np.pi/2.0
 
-        err = -dist
+        #correct sign for controller
+        err = -dist+0.025
 
         phiref = k_p*err
 
@@ -99,7 +100,7 @@ class MyNode(DTROS):
     def run(self):
         # publish message every 1/x second
         #for cascade choose rate > rate of camera    (rate of camera 8-35 Hz)
-        rate = rospy.Rate(50) 
+        rate = rospy.Rate(100) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
         while not rospy.is_shutdown():
