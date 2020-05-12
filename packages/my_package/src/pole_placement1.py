@@ -49,17 +49,20 @@ class MyNode(DTROS):
             told = tnew
             tnew = time.time()
             dt = tnew-told
+            omegamax = 5.0
+            sati = 0.35
 
+            '''
             #without integral state
             #state feedback: statevector x = [d;phi]
             #K places poles at -1 and -2   (in continuous time)
-
-            k1 = 2.0/self.vref
-            k2 = -2.8
+            
+            k1 = 1.0/self.vref
+            k2 = -2.5
 
             # u = -K*x
             self.omega = -k1*self.dist - k2*self.phi
-
+            
             '''
             #with integral state
             #state feedback: statevector = [d;phi;dint]
@@ -67,12 +70,22 @@ class MyNode(DTROS):
 
             self.dint += dt*self.dist
 
-            k1 = 5.0/self.vref
-            k2 = 4.0
-            k3 = 2.0/self.vref
+            if self.dint > sati:
+                self.dint = sati
+            if self.dint < -sati:
+                self.dint = -sati
+
+            k1 = 7.0
+            k2 = -3.25
+            k3 = 1.1
 
             self.omega = -k1*self.dist - k2*self.phi - k3*self.dint
-            '''
+            
+
+            if self.omega > omegamax:
+                self.omega = omegamax
+            if self.omega < -omegamax:
+                self.omega = -omegamax
             
             #def. motor commands that will be published
             car_cmd_msg.header.stamp = rospy.get_rostime()
@@ -83,13 +96,13 @@ class MyNode(DTROS):
 
             #printing messages to verify that program is working correctly 
             #i.ei if dist and tist are always zero, then there is probably no data from the lane_pose
-            message1 = self.dist
+            message1 = self.dint
             message2 = self.omega
             message3 = self.phi
             message4 = dt
 
 
-            rospy.loginfo('d: %s' % message1)
+            rospy.loginfo('dint: %s' % message1)
             rospy.loginfo('phi: %s' % message3)
             #rospy.loginfo('dt: %s' % message4)
             rospy.loginfo('omega: %s' % message2)
