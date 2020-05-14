@@ -1,0 +1,5 @@
+<launch>
+
+  <node pkg="my_package" type="pure_pursuit.py" name="Pure_Pursuit" output="screen"/>
+  
+</launch>
