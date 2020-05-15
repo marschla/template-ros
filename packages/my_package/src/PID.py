@@ -45,13 +45,13 @@ class MyNode(DTROS):
 
     def getomega(self,dist,tist,dt):
         #parameters for PID control
-        k_p = 4.6
-        k_i = 0.8
-        k_d = 0.1
+        k_p = 4.7
+        k_i = 0.1
+        k_d = 1.2
         #saturation params
         sati = 1.0
         satd = 1.0
-        omegasat=5.0
+        omegasat=4.5
         
         '''
         #array for moving average filter
@@ -63,13 +63,14 @@ class MyNode(DTROS):
         derr = self.filter(self.arr_d)
         '''
 
-        err = 6*dist+tist
+        err = 6*dist+1.5*tist
 
         #proportional gain part
         self.C_p = k_p*err
 
         #integral term (approximate integral)
         self.C_i += k_i*dt*err
+
         
         #make sure integral term doesnt become too big
         if self.C_i > sati:
@@ -131,10 +132,13 @@ class MyNode(DTROS):
             if dt<0.08:
                 rospy.logwarn('dt: %s' % message4)
 
+            if self.omega > 4.45:
+                rospy.logwarn('omega: %s' % message2)
+
             rospy.loginfo('d: %s' % message1)
             rospy.loginfo('phi: %s' % message3)
             #rospy.loginfo('dt: %s' % message4)
-            rospy.loginfo('omega: %s' % message2)
+            
             rate.sleep()
 
         #shutdown procedure, stopping motor movement etc.
