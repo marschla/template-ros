@@ -50,7 +50,7 @@ class MyNode(DTROS):
         k_d = 1.2
         #saturation params
         sati = 1.0
-        satd = 1.0
+        satd = 1.5
         omegasat=4.5
         
         '''
