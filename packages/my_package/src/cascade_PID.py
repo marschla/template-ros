@@ -53,7 +53,7 @@ class MyNode(DTROS):
 
         #PID params for inner loop
         k_p = 3.8
-        k_i = 0.01
+        k_i = 0.1
         k_d = 0.0
         sati = 1.0
         satd = 1.0
@@ -79,13 +79,13 @@ class MyNode(DTROS):
     def getphiref(self,dist):
 
         #PID params for outer loop
-        k_p = 2.0
-        k_i = 0.2
+        k_p = 3.0
+        k_i = 0.25
         k_d = 0.0
-        sat = np.pi/2.0
+        sat = np.pi/4.0
 
-        #correct sign for controller
-        err = -dist+0.025
+        #correct sign for controller, (offset because DB drove too far on the right)
+        err = -dist
 
         phiref = k_p*err
 

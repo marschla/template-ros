@@ -16,15 +16,14 @@ class MyNode(DTROS):
         self.vref = 0.0
         self.L = 0.05
         self.omega = 0.0
-
-        location = "autobot17"
+        self.tnew = 0.0
 
         # Start rospy for this node
         #rospy.init_node("lane_controller_node", anonymous=False)
 
         # Subscriptions
-        self.sub_lane_reading = rospy.Subscriber(str(os.environ['VEHICLE_NAME'])+"/lane_filter_node/seglist_filtered", SegmentList, self.process_segments, queue_size=1)
-       
+        #self.sub_lane_reading = rospy.Subscriber("/autobot17/lane_filter_node/seglist_filtered", SegmentList, self.process_segments, queue_size=1)
+        self.sub_pose = rospy.Subscriber(str(os.environ['VEHICLE_NAME'])+"/line_detector_node/segment_list", SegmentList, self.process_segments, queue_size=1)
 
         # Publication
         #self.pub_car_cmd = rospy.Publisher("/{}/joy_mapper_node/car_cmd".format(location), Twist2DStamped, queue_size=1)
@@ -32,6 +31,7 @@ class MyNode(DTROS):
 
         # Stop on shutdown
         rospy.on_shutdown(self.custom_shutdown)
+
 
 
     def custom_shutdown(self):
@@ -67,7 +67,7 @@ class MyNode(DTROS):
         total_yellow = np.zeros(2)
         total_yellow_far = np.zeros(2)
 
-        far = 0.2
+        far = 0.5
 
         for segment in all_segments:
 
@@ -105,8 +105,8 @@ class MyNode(DTROS):
 
         if num_white + num_yellow == 0:
             # Want to turn right (improve later)
-            car_control_msg.v = 0.2
-            car_control_msg.omega = -3
+            car_control_msg.v = 0.2/2.0
+            car_control_msg.omega = -3.0
 
         elif num_white == 0: # and num_yellow != 0
             if num_yellow_far > 0:
@@ -119,7 +119,7 @@ class MyNode(DTROS):
             alpha = np.arctan2(ave_yellow[1], ave_yellow[0])
             omega = 6 * np.sin(alpha)
 
-            car_control_msg.v = 0.25
+            car_control_msg.v = 0.25/2.0
             car_control_msg.omega = omega
 
         elif num_yellow == 0: # and num_white != 0
@@ -133,7 +133,7 @@ class MyNode(DTROS):
             alpha = np.arctan2(ave_white[1], ave_white[0])
             omega = 6 * np.sin(alpha)
 
-            car_control_msg.v = 0.25
+            car_control_msg.v = 0.25/2.0
             car_control_msg.omega = omega
 
         else: # see both colours
@@ -149,27 +149,36 @@ class MyNode(DTROS):
             alpha = np.arctan2(overall_ave[1], overall_ave[0])
             omega = 3 * np.sin(alpha)
 
-            car_control_msg.v = 0.4
+            car_control_msg.v = 0.4/2.0
             car_control_msg.omega = omega
 
         self.vref = car_control_msg.v
         self.omega = car_control_msg.omega
 
-        car_cmd_msg = WheelsCmdStamped()
-
-        car_cmd_msg.header.stamp = rospy.get_rostime()
-        car_cmd_msg.vel_left = self.vref + self.L * self.omega
-        car_cmd_msg.vel_right = self.vref - self.L * self.omega
-
-        # Send the command to the car
-        #self.pub_car_cmd.publish(car_control_msg)
-        self.pub_wheels_cmd(car_cmd_msg)
+        
 
     
     def run(self):
         rate = rospy.Rate(10) 
         while not rospy.is_shutdown():
-            rospy.loginfo("Hallo\n")
+            #rospy.loginfo("Hallo\n")
+
+            car_cmd_msg = WheelsCmdStamped()
+
+            car_cmd_msg.header.stamp = rospy.get_rostime()
+            car_cmd_msg.vel_left = self.vref - self.L * self.omega
+            car_cmd_msg.vel_right = self.vref + self.L * self.omega
+
+            msg1 = self.omega
+            msg2 = self.vref
+
+            rospy.loginfo("omega: %s" % msg1)
+            rospy.loginfo("vref: %s" % msg2)
+
+            # Send the command to the car
+            #self.pub_car_cmd.publish(car_control_msg)
+            self.pub_wheels_cmd.publish(car_cmd_msg)
+            
             rate.sleep()
 
 if __name__ == '__main__':

@@ -104,16 +104,17 @@ class MyNode(DTROS):
         rate = rospy.Rate(10) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
-        stoptime = 5.0
+        stoptime = 25.0
         t0 = time.time()
         
         while not rospy.is_shutdown():
-
+            
             #stop programm once a certain time has passed (for experiments, not meant for normal usage)
             if time.time()-t0>stoptime:
                 rospy.logwarn("Time's up!!!")
                 rospy.signal_shutdown("Ende gut, alles gut")
                 self.custom_shutdown()
+            
 
             #computing dt for I-part of controller
             told = tnew
@@ -130,7 +131,7 @@ class MyNode(DTROS):
             car_cmd_msg.vel_left = self.vref + self.L * self.omega
             car_cmd_msg.vel_right = self.vref - self.L * self.omega
 
-            #self.pub_wheels_cmd.publish(car_cmd_msg)
+            self.pub_wheels_cmd.publish(car_cmd_msg)
 
             #printing messages to verify that program is working correctly 
             #i.ei if dist and tist are always zero, then there is probably no data from the lan_pose
@@ -144,7 +145,7 @@ class MyNode(DTROS):
             #rospy.loginfo('d: %s' % message1)
             #rospy.loginfo('phi: %s' % message3)
             #rospy.loginfo('dt: %s' % message4)
-            rospy.loginfo("time: %s" % message5)
+            #rospy.loginfo("time: %s" % message5)
             
             rate.sleep()
 

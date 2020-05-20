@@ -42,7 +42,7 @@ class MyNode(DTROS):
 
     def run(self):
         # publish message every 1/x second
-        rate = rospy.Rate(10) 
+        rate = rospy.Rate(15) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
         while not rospy.is_shutdown():
@@ -58,7 +58,7 @@ class MyNode(DTROS):
 
             #computing integral state
             self.dint += self.dist*dt
-
+            '''
             #discrete state space matrices (without integral d state)
             A = np.matrix([[1,self.vref*Ts],[0,1]])
             B = np.matrix([[0.5*Ts*Ts*self.vref],[Ts]])
@@ -66,15 +66,15 @@ class MyNode(DTROS):
             #weighting matrices
             Q = np.matrix([[2.5,0],[0,1]])
             R = np.matrix([[0.1]])
-
             '''
+            
             #discrete state space matrices (with integral d state)
             A = np.matrix([[1,self.vref*Ts,0],[0,1,0],[Ts,0.5*self.vref*Ts*Ts,1]])
             B = np.matrix([[0.5*self.vref*Ts*Ts],[Ts],[self.vref*Ts*Ts*Ts/6.0]])
 
-            Q = np.matrix([[1,0,0],[0,1,0],[0,0,1]])
+            Q = np.matrix([[4.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,0.5]])
             R = np.matrix([[0.1]])
-            '''
+            
 
             #solving dare
             (X,L,G) = control.dare(A,B,Q,R)
@@ -82,11 +82,11 @@ class MyNode(DTROS):
             #extracting K-matrix-components
             k1 = G[0,0]
             k2 = -G[0,1]
-            #k3 = G[0,2]
+            k3 = G[0,2]
 
             # u = -K*x   (state feedback)
-            self.omega = -k1*self.dist - k2*self.phi
-            #self.omega  = -k1*self.dist - k2*self.phi -k3*self.dint
+            #self.omega = -k1*self.dist - k2*self.phi
+            self.omega  = -k1*self.dist - k2*self.phi -k3*self.dint
 
             self.omega = self.omega
 

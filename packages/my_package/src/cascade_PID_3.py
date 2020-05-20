@@ -43,50 +43,55 @@ class MyNode(DTROS):
         return val 
 
     def getphiref(self,dist,phi):
-        L = 0.25         #lookahead parameter
-        vmax = 0.23     #maximal velocity
-        phisat = np.pi/4.0
-        l = 0.05
+        L = 0.01         #lookahead parameter
+        vmax = 0.25     #maximal velocity
 
+        p = False
 
-        #we introduce this term, because the point we control and the point where the pose applies to are not the same
-        dist_ = dist - l*np.cos(phi)        #minus sign arises from sign convention from lane pose
+        
+        #figuring out if DB moves towards centerline at 
+        if dist>0 and phi<0:
+            p = True
 
-        phiref = np.arctan2(np.abs(dist_),L)
+        if dist<0 and phi>0:
+            p = True
+        
+        #execute only if moving towards centerline
+        if p==True:
+            xdot = 1.0
+            ydot = np.tan(phi)*np.exp(-L/dist*np.tan(phi))
+            
 
-        if dist>0:
-            phiref = -phiref
-        if dist<0:
-            phiref = phiref
+        #execute if not moving towards centerline
+        if p == False and dist != 0:
+            xdot = 1
+            nom = L-dist*np.tan(phi)
+            denom = np.square(dist/np.cos(phi))-np.square(L-dist*np.tan(phi))
+            ydot = nom/np.sqrt(denom)
 
+        if p==False and dist == 0:
+            ydot = 0
+            xdot = 1
+            
+        
+        phiref = np.arctan2(ydot,xdot)
+
+        vref = 0.2
         '''
-        #this part slows the DB down, if distance to lane center or phi is too big
-
-        #if DB is near lane center, drive at max velocity
-        if np.abs(dist)<0.05:
-            vref = vmax
-        #if further away drive slower (dist-> inf, vref->0.11111)
-        else:
-            vref = np.sqrt(L*L+dist*dist)/(9*np.abs(dist))   #factor that velocity isn't bigger then vmax
-
-        if np.abs(self.phi)>np.pi/2.5:
-            vref = 0.05
+        msg1 = phiref
+        msg2 = dist
+        msg3 = phi
+        rospy.loginfo("phiref: %s" %msg1)
+        rospy.loginfo("dist: %s" %msg2)
+        rospy.loginfo("phi: %s" %msg3)
         '''
-        vref = vmax
-                                                              
-        #phiref saturating behavior
-        if phiref>phisat:
-            phiref=phisat
-        if phiref<-phisat:
-            phiref=-phisat
-
         return phiref,vref
 
     def getomega(self,err,dt):
         #parameters for PID control
-        k_p = 4.0
-        k_i = 0.1
-        k_d = 0.5
+        k_p = 5.0
+        k_i = 0.0
+        k_d = 0.2
         #saturation params
         sati = 1.0
         satd = 2.0
@@ -137,7 +142,7 @@ class MyNode(DTROS):
 
     def run(self):
         # publish message every 1/x second
-        rate = rospy.Rate(5) 
+        rate = rospy.Rate(2) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
         while not rospy.is_shutdown():
@@ -167,11 +172,12 @@ class MyNode(DTROS):
             message2 = self.omega
             message3 = phiref
             message4 = vref
-
+            
             rospy.loginfo('d: %s' % message1)
             rospy.loginfo('phiref: %s' % message3)
             rospy.loginfo('vref: %s' % message4)
             rospy.loginfo('omega: %s' % message2)
+            
             rate.sleep()
 
         #shutdown procedure, stopping motor movement etc.

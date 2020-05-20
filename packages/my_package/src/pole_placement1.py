@@ -22,7 +22,7 @@ class MyNode(DTROS):
         rospy.on_shutdown(self.custom_shutdown)
         #def. variables
         self.omega = 0.0
-        self.vref = 0.23    #v_ref defines speed at which the robot moves 
+        self.vref = 0.23    #vref defines speed at which the robot moves 
         self.dist = 0.0
         self.phi = 0.0
         self.dint = 0.0
@@ -41,7 +41,7 @@ class MyNode(DTROS):
 
     def run(self):
         # publish message every 1/x second
-        rate = rospy.Rate(10) 
+        rate = rospy.Rate(140) 
         car_cmd_msg = WheelsCmdStamped()
         tnew = time.time()
         while not rospy.is_shutdown():
@@ -49,24 +49,24 @@ class MyNode(DTROS):
             told = tnew
             tnew = time.time()
             dt = tnew-told
-            omegamax = 5.0
-            sati = 0.35
+            omegamax = 4.0
+            sati = 0.4
 
             '''
             #without integral state
             #state feedback: statevector x = [d;phi]
             #K places poles at -1 and -2   (in continuous time)
             
-            k1 = 1.0/self.vref
-            k2 = -2.5
+            k1 = 10.5
+            k2 = -4.25
 
             # u = -K*x
             self.omega = -k1*self.dist - k2*self.phi
-            
             '''
+            
             #with integral state
             #state feedback: statevector = [d;phi;dint]
-            #K places poles at -1,-1,-2
+            #current best K = [7.0 -3.25 1.1]
 
             self.dint += dt*self.dist
 
@@ -96,13 +96,16 @@ class MyNode(DTROS):
 
             #printing messages to verify that program is working correctly 
             #i.ei if dist and tist are always zero, then there is probably no data from the lane_pose
-            message1 = self.dint
+            message1 = self.dist
             message2 = self.omega
             message3 = self.phi
             message4 = dt
 
+            if dt < 0:
+                rospy.logwarn("dt = %s" % message4)
 
-            rospy.loginfo('dint: %s' % message1)
+
+            rospy.loginfo('d: %s' % message1)
             rospy.loginfo('phi: %s' % message3)
             #rospy.loginfo('dt: %s' % message4)
             rospy.loginfo('omega: %s' % message2)
