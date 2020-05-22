@@ -4,19 +4,20 @@ set -e
 
 # YOUR CODE BELOW THIS LINE
 # ----------------------------------------------------------------------------
-echo 'Trulla die Waldfee'
 
-dist=true
+dist=false
 
-if [ $dist ]
+if [ $dist = true ]
 then
 	
 	roslaunch my_package nodedisturbance.launch &
 
 fi
 
-roslaunch my_package nodePID.launch  
-#roslaunch my_package nodeCascade1.launch
+#roslaunch my_package stopnode.launch & 
+
+#roslaunch my_package nodePID.launch  
+roslaunch my_package nodeCascade1.launch
 #roslaunch my_package nodePI.launch
 #roslaunch my_package nodeCascade2.launch
 #roslaunch my_package nodeCascade2T.launch
