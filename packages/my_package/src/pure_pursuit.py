@@ -47,7 +47,7 @@ class MyNode(DTROS):
     def process_segments(self, input_segment_list):
         all_segments = input_segment_list.segments # this is a list of type Segment
 
-        far = 0.4
+        far = 0.2
         tol = 0.05
 
         num_yellow = 0
@@ -58,6 +58,8 @@ class MyNode(DTROS):
 
         rospy.loginfo("Hallo")
 
+        flag = True
+
         for segment in all_segments:
             point0 = segment.points[0]
             point1 = segment.points[1]
@@ -67,12 +69,12 @@ class MyNode(DTROS):
 
             d = np.sqrt(ave_point_x**2 + ave_point_y**2)
 
-            if segment.color == 1:    #yellow color
+            if segment.color == 1:    #yellow color (only Segments to the left of DB)
                 if d < far + tol and d > far - tol:
                     num_yellow += 1
                     yellow_arr += np.array([ave_point_x,ave_point_y])
 
-            if segment.color == 0:     #white color
+            if segment.color == 0:     #white color (only segments to the right of DB)
                 if d < far + tol and d > far - tol:
                     num_white += 1
                     white_arr += np.array([ave_point_x,ave_point_y])
@@ -83,14 +85,45 @@ class MyNode(DTROS):
 
             ave_point = (ave_white + ave_yellow)/2.0
 
+            self.vref = 0.2
+
+
+        if num_white == 0 and num_yellow == 0:
+            #now white/yellow segments detected 
+            #figure a procedure, if camera doesn't pick up any segments
+            self.vref = 0.0
+            self.omega = 1.0
+            flag = False
+
+        if num_white == 0 and num_yellow != 0:
+            #only yellow segments (probably too far to the left)
+
+            ave_yellow = yellow_arr * 1. / num_yellow
+
+            offset = -0.15
+            ave_point = ave_yellow + np.array([0.0,offset])
+
+            self.vref = 0.2
+
+        if num_yellow == 0 and num_white != 0:
+            #only white segments (probably too far to the right of the lane)
+
+            ave_white = white_arr * 1. / num_white
+
+            offset = 0.25
+            ave_point = ave_white + np.array([0.0,offset])
+
+            self.vref = 0.2
+
+
+        rospy.loginfo("Flag: %s" % flag)
+
+        if flag == True:
             alpha = np.arctan2(ave_point[1],ave_point[0])
 
-            self.omega = 8 * np.sin(alpha)
+            self.omega = 4*self.vref* np.sin(alpha)/far
 
-            rospy.loginfo("target: %s" % self.omega)
-
-            
-        self.vref = 0.2
+            rospy.loginfo("target: %s" % ave_point)
             
 
     
