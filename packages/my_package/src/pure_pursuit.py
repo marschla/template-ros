@@ -22,11 +22,9 @@ class MyNode(DTROS):
         #rospy.init_node("lane_controller_node", anonymous=False)
 
         # Subscriptions
-        #self.sub_lane_reading = rospy.Subscriber("/autobot17/lane_filter_node/seglist_filtered", SegmentList, self.process_segments, queue_size=1)
-        #self.sub_pose = rospy.Subscriber(str(os.environ['VEHICLE_NAME'])+"/line_detector_node/segment_list", SegmentList, self.process_segments, queue_size=1)      
-        self.sub_pose = rospy.Subscriber("/autobot17/ground_projection/lineseglist_out", SegmentList, self.process_segments, queue_size=1)
+        self.sub_pose = rospy.Subscriber(str(os.environ['VEHICLE_NAME'])+"/ground_projection/lineseglist_out", SegmentList, self.process_segments, queue_size=1)
+        
         # Publication
-        #self.pub_car_cmd = rospy.Publisher("/{}/joy_mapper_node/car_cmd".format(location), Twist2DStamped, queue_size=1)
         self.pub_wheels_cmd = self.publisher(str(os.environ['VEHICLE_NAME'])+"/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
 
         # Stop on shutdown
@@ -44,6 +42,7 @@ class MyNode(DTROS):
         rospy.sleep(0.5)
         rospy.loginfo("Shutdown complete oder?")
 
+
     def process_segments(self, input_segment_list):
         all_segments = input_segment_list.segments # this is a list of type Segment
 
@@ -56,7 +55,7 @@ class MyNode(DTROS):
         yellow_arr = np.zeros(2)
         white_arr = np.zeros(2)
 
-        rospy.loginfo("Hallo")
+        rospy.loginfo("Hallo1")
 
         flag = True
 
@@ -69,12 +68,12 @@ class MyNode(DTROS):
 
             d = np.sqrt(ave_point_x**2 + ave_point_y**2)
 
-            if segment.color == 1:    #yellow color (only Segments to the left of DB)
+            if segment.color == 1:    #yellow color 
                 if d < far + tol and d > far - tol:
                     num_yellow += 1
                     yellow_arr += np.array([ave_point_x,ave_point_y])
 
-            if segment.color == 0:     #white color (only segments to the right of DB)
+            if segment.color == 0 and ave_point_y < 0.1:     #white color 
                 if d < far + tol and d > far - tol:
                     num_white += 1
                     white_arr += np.array([ave_point_x,ave_point_y])
@@ -89,10 +88,10 @@ class MyNode(DTROS):
 
 
         if num_white == 0 and num_yellow == 0:
-            #now white/yellow segments detected 
+            #no white/yellow segments detected 
             #figure a procedure, if camera doesn't pick up any segments
-            self.vref = 0.0
-            self.omega = 1.0
+            self.vref = 0.1
+            self.omega = 2.5
             flag = False
 
         if num_white == 0 and num_yellow != 0:
@@ -110,18 +109,21 @@ class MyNode(DTROS):
 
             ave_white = white_arr * 1. / num_white
 
-            offset = 0.25
+            offset = 0.35
             ave_point = ave_white + np.array([0.0,offset])
 
             self.vref = 0.2
 
 
-        rospy.loginfo("Flag: %s" % flag)
+        #rospy.loginfo("Flag: %s" % flag)
+        
+        #rospy.loginfo("yellow: %s" % num_yellow)
+        #rospy.loginfo("white %s" % num_white)
 
         if flag == True:
             alpha = np.arctan2(ave_point[1],ave_point[0])
 
-            self.omega = 4*self.vref* np.sin(alpha)/far
+            self.omega = 4.0*self.vref* np.sin(alpha)/far
 
             rospy.loginfo("target: %s" % ave_point)
             
@@ -147,7 +149,6 @@ class MyNode(DTROS):
             '''
 
             # Send the command to the car
-            #self.pub_car_cmd.publish(car_control_msg)
             self.pub_wheels_cmd.publish(car_cmd_msg)
             
             rate.sleep()
