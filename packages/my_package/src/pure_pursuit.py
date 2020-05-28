@@ -18,12 +18,16 @@ class MyNode(DTROS):
         self.omega = 0.0
         self.tnew = 0.0
 
+        self.dist = 0.0
+        self.phi = 0.0
+        self.in_lane = False
+
         # Start rospy for this node
         #rospy.init_node("lane_controller_node", anonymous=False)
 
         # Subscriptions
-        self.sub_pose = rospy.Subscriber(str(os.environ['VEHICLE_NAME'])+"/ground_projection/lineseglist_out", SegmentList, self.process_segments, queue_size=1)
-        
+        self.sub_seg = rospy.Subscriber(str(os.environ['VEHICLE_NAME'])+"/ground_projection/lineseglist_out", SegmentList, self.process_segments, queue_size=1)
+        #self.sub_pose = rospy.Subscriber(str(os.environ['VEHICLE_NAME'])+"/lane_filter_node/lane_pose", LanePose ,self.updatepose ,queue_size = 1)
         # Publication
         self.pub_wheels_cmd = self.publisher(str(os.environ['VEHICLE_NAME'])+"/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
 
@@ -42,6 +46,12 @@ class MyNode(DTROS):
         rospy.sleep(0.5)
         rospy.loginfo("Shutdown complete oder?")
 
+    '''
+    def updatepose(self,pose):
+        self.dist = pose.d
+        self.phi = pose.phi
+        self.in_lane = pose.in_lane
+    '''
 
     def process_segments(self, input_segment_list):
         all_segments = input_segment_list.segments # this is a list of type Segment
@@ -51,6 +61,12 @@ class MyNode(DTROS):
 
         num_yellow = 0
         num_white = 0
+
+        num_yellow_total = 0
+        num_white_total = 0
+
+        yellow_arr_total = np.zeros(2)
+        white_arr_total = np.zeros(2)
 
         yellow_arr = np.zeros(2)
         white_arr = np.zeros(2)
@@ -69,11 +85,19 @@ class MyNode(DTROS):
             d = np.sqrt(ave_point_x**2 + ave_point_y**2)
 
             if segment.color == 1:    #yellow color 
+
+                num_yellow_total += 1
+                yellow_arr_total += np.array([ave_point_x,ave_point_y])
+
                 if d < far + tol and d > far - tol:
                     num_yellow += 1
                     yellow_arr += np.array([ave_point_x,ave_point_y])
 
             if segment.color == 0 and ave_point_y < 0.1:     #white color 
+
+                num_white_total += 1
+                white_arr_total += np.array([ave_point_x,ave_point_y])
+
                 if d < far + tol and d > far - tol:
                     num_white += 1
                     white_arr += np.array([ave_point_x,ave_point_y])
@@ -89,9 +113,31 @@ class MyNode(DTROS):
 
         if num_white == 0 and num_yellow == 0:
             #no white/yellow segments detected 
-            #figure a procedure, if camera doesn't pick up any segments
-            self.vref = 0.1
-            self.omega = 2.5
+            #figure a procedure, if camera doesn't pick up any segments in target range
+            #self.vref = 0.05
+            #self.omega = -2.5
+
+            if white_arr_total[1] < 0 and yellow_arr_total[1] > 0:
+                self.omega = 0.0
+                self.vref = 0.1
+            elif white_arr_total[1] > 0 and yellow_arr_total < 0:
+                self.omega = -1.5
+                self.vref = 0.1
+            elif white_arr_total[1] > 0 and yellow_arr_total == 0:
+                self.omega = 1.5
+                self.vref = 0.1
+            elif num_yellow_total !=0 and num_white_total == 0:
+                self.omega = -0.75
+                self.vref = 0.1
+            elif num_white_total !=0 and num_yellow_total == 0:
+                self.omega = 0.75
+                self.vref = 0.1
+            else:
+                self.omega = 1.0
+                self.vref = 0.0
+
+
+
             flag = False
 
         if num_white == 0 and num_yellow != 0:
@@ -101,6 +147,7 @@ class MyNode(DTROS):
 
             offset = -0.15
             ave_point = ave_yellow + np.array([0.0,offset])
+
 
             self.vref = 0.2
 
@@ -126,7 +173,7 @@ class MyNode(DTROS):
             self.omega = 4.0*self.vref* np.sin(alpha)/far
 
             rospy.loginfo("target: %s" % ave_point)
-            
+           
 
     
     def run(self):
